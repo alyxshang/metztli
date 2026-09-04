@@ -1,0 +1,14 @@
+.{
+    .name = .metztli,
+    .version = "0.1.0",
+    .fingerprint = 0x893a579e2762d6ad,
+    .minimum_zig_version = "0.14.0",
+    .dependencies = .{}, 
+    .paths = .{
+        "src",
+        "LICENSE",
+        "build.zig",
+        "build.zig.zon", 
+        "README.markdown"
+    },
+}

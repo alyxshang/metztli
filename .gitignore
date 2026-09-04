@@ -1,0 +1,10 @@
+# General.
+.DS_Store
+
+# Library.
+/zig-out
+/.zig-cache
+
+# Example.
+/example/zig-out
+/example/.zig-cache
