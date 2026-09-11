@@ -277,4 +277,4 @@ command.
 ## NOTE
 
 - *Metztli* by *Alyx Shang*.
-- Licensed under the [FSL v1](https://alyxshang.boo/fair-software-license).
+- Licensed under the [FSL v1](https://alyxshang.boo/content/fair-software-license).
