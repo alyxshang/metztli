@@ -19,6 +19,9 @@ jobs:
       - name: "Run tests."
         run: zig build test --summary all
 
+      - name: "Run linter."
+        run: zlint
+
       - name: "Run the example with various options."
         run: |
           cd example
