@@ -8,21 +8,19 @@ const std = @import("std");
 // Metztli so an app can be built.
 const App = @import("metztli").app.App;
 
-pub fn main() !void {
+pub fn main(init: std.process.Init) !void {
 
     // Normal GPA.
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
 
     // Defining the allocator.
     const allocator = gpa.allocator();
 
     // Creating a buffer for our arguments.
-    var args_list = std.ArrayList([*:0]const u8).init(allocator);
-    defer args_list.deinit();
-
-    // Getting the actual arguments via the iterator.
-    var args_iter = try std.process.argsWithAllocator(allocator);
+    var args_iter = try init.minimal.args.iterateAllocator(init.gpa);
+    var args_list: std.ArrayList([*:0]const u8) = .empty;
+    defer args_list.deinit(allocator);
 
     // The iterator owns the arguments which is why
     // we do not need to free the strings in the buffer.
@@ -31,71 +29,75 @@ pub fn main() !void {
 
     // Appending the arguments to our buffer.
     while (args_iter.next()) |arg| {
-        try args_list.append(arg);
+        try args_list.append(allocator, arg);
     }
 
     // Heap-allocd string for the app's name.
-    const name: [*:0]const u8 = allocator.dupeZ(u8, "Test App") catch {
+    const name: [*:0]const u8 = allocator.dupeSentinel(
+        u8, 
+        "Test App",
+        0
+    ) catch {
         std.debug.print("Could not create app name.", .{});
         return;
     };
 
     // Heap-allocd string for the app's author.
-    const author: [*:0]const u8 = allocator.dupeZ(u8, "Alyx Shang") catch {
+    const author: [*:0]const u8 = allocator.dupeSentinel(u8, "Alyx Shang", 0) catch {
         std.debug.print("Could not create app author.", .{});
         return;
     };
 
     // Heap-allocd string for the app's version.
-    const version: [*:0]const u8 = allocator.dupeZ(u8, "0.1.0") catch {
+    const version: [*:0]const u8 = allocator.dupeSentinel(u8, "0.1.0", 0) catch {
         std.debug.print("Could not create app version.", .{});
         return;
     };
 
     // Heap-allocd string for the first argument's name.
-    const g_name: [*:0]const u8 = allocator.dupeZ(u8, "greet") catch {
+    const g_name: [*:0]const u8 = allocator.dupeSentinel(u8, "greet", 0) catch {
         std.debug.print("Could not create string.", .{});
         return;
     };
 
     // Heap-allocd string for the first argument's help message.
-    const g_help: [*:0]const u8 = allocator.dupeZ(u8, "greets the user") catch {
+    const g_help: [*:0]const u8 = allocator.dupeSentinel(u8, "greets the user", 0) catch {
         std.debug.print("Could not create string.", .{});
         return;
     };
 
     // Heap-allocd string for the second argument's name.
-    const c_name: [*:0]const u8 = allocator.dupeZ(u8, "cgreet") catch {
+    const c_name: [*:0]const u8 = allocator.dupeSentinel(u8, "cgreet", 0) catch {
         std.debug.print("Could not create string.", .{});
         return;
     };
 
     // Heap-allocd string for the second argument's help message.
-    const c_help: [*:0]const u8 = allocator.dupeZ(u8, "greets the user with their name") catch {
+    const c_help: [*:0]const u8 = allocator.dupeSentinel(u8, "greets the user with their name", 0) catch {
         std.debug.print("Could not create string.", .{});
         return;
     };
 
     // Heap-allocd string for the version argument's name.
-    const v_name: [*:0]const u8 = allocator.dupeZ(u8, "version") catch {
+    const v_name: [*:0]const u8 = allocator.dupeSentinel(u8, "version", 0) catch {
         std.debug.print("Could not create string.", .{});
         return;
     };
 
     // Heap-allocd string for the version argument's help message.
-    const v_help: [*:0]const u8 = allocator.dupeZ(u8, "displays version info") catch {
+    const v_help: [*:0]const u8 = allocator.dupeSentinel(u8, "displays version info", 0) catch {
         std.debug.print("Could not create string.", .{});
         return;
     };
 
     // Heap-allocd string for the help argument's name.
-    const h_name: [*:0]const u8 = allocator.dupeZ(u8, "help") catch {
+    const h_name: [*:0]const u8 = allocator.dupeSentinel(u8, "help", 0) catch {
         std.debug.print("Could not create string.", .{});
         return;
     };
 
     // Heap-allocd string for the help argument's help message.
-    const h_help: [*:0]const u8 = allocator.dupeZ(u8, "displays help info") catch {
+    const h_help: [*:0]const u8 = allocator.dupeSentinel(u8, "displays help info", 0) catch {
         std.debug.print("Could not create string.", .{});
         return;
     };
