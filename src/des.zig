@@ -43,8 +43,12 @@ const getArgByLetter = @import("arg.zig").getArgByLetter;
 pub const DeserializedArgument = struct {
     entity: [*:0]const u8,
     is_arg: bool,
+
+    /// A function to free all
+    /// heap-allocated resources
+    /// this structure has.
     pub fn deinit(
-        self: *const DeserializedArgument,
+        self: *DeserializedArgument,
         allocator: Allocator
     ) void {
         allocator.free(std.mem.span(self.entity));
@@ -65,13 +69,12 @@ pub fn deserializeTokens(
     sub: *const ArrayList(Token),
     set_args: *ArrayList(Argument)
 ) !ArrayList(DeserializedArgument) {
-    var result: ArrayList(DeserializedArgument) = ArrayList(DeserializedArgument)
-        .init(allocator);
+    var result: ArrayList(DeserializedArgument) = .empty;
     errdefer {
         for (result.items) |*item| {
             item.deinit(allocator);
         }
-        result.deinit();
+        result.deinit(allocator);
     }
     for (sub.items) |item| {
         var is_arg: bool = false;
@@ -113,7 +116,7 @@ pub fn deserializeTokens(
                 .is_arg = is_arg,
                 .entity = p
             };
-            result.append(da) catch {
+            result.append(allocator, da) catch {
                 allocator.free(std.mem.span(p));
                 return MetztliErr.WriteErr;
             };

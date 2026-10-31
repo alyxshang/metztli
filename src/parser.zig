@@ -45,7 +45,7 @@ pub const ParsedArgument = struct {
     /// A function to drop all heap-allocated
     /// resources of this structure.
     pub fn deinit(
-        self: *const ParsedArgument,
+        self: *ParsedArgument,
         allocator: Allocator
     ) void {
         if (self.data) |data| {
@@ -68,13 +68,12 @@ pub fn parseDeserialized(
     sub: *const ArrayList(DeserializedArgument)
 ) !ArrayList(ParsedArgument) {
     var cursor: u64 = 0;
-    var result: ArrayList(ParsedArgument) = ArrayList(ParsedArgument)
-        .init(allocator);
+    var result: ArrayList(ParsedArgument) = .empty;
     errdefer {
-        for (result.items) |item| {
-            item.deinit(allocator);
+        for (result.items) |*item| {
+            @constCast(item).deinit(allocator);
         }
-        result.deinit();
+        result.deinit(allocator);
     }
     while (cursor < sub.items.len) {
         const current: DeserializedArgument = sub.items[cursor];
@@ -98,7 +97,7 @@ pub fn parseDeserialized(
                         .name = cloned,
                         .data = cloned_data
                     };
-                    result.append(parsed) catch return MetztliErr.WriteErr;
+                    result.append(allocator,parsed) catch return MetztliErr.WriteErr;
                     cursor = cursor + 2;
                 }
                 else {
@@ -112,7 +111,7 @@ pub fn parseDeserialized(
                     .name = cloned,
                     .data = null
                 };
-                result.append(parsed) catch return MetztliErr.WriteErr;
+                result.append(allocator,parsed) catch return MetztliErr.WriteErr;
                 cursor = cursor + 1;
             }
         }

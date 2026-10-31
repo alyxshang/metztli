@@ -17,19 +17,23 @@ pub fn build(b: *std.Build) void {
             .optimize = optimize,
         }
     );
-    const lib_unit_tests = b.addTest(
+    const unit_tests = b.createModule(
         .{
             .root_source_file = b.path("src/tests.zig"),
             .target = target,
             .optimize = optimize,
         }
     );
-    const lib = b.addStaticLibrary(
+    const lib_unit_tests = b.addTest(
+        .{
+            .root_module = unit_tests
+        }
+    );
+    const lib = b.addLibrary(
         .{
             .name = "metztli",
-            .root_source_file = b.path("src/root.zig"),
-            .target = target,
-            .optimize = optimize,
+            .linkage = .static,
+            .root_module = lib_mod
         }
     );
     const docs_step = b.step("docs", "Generate documentation");
@@ -39,7 +43,7 @@ pub fn build(b: *std.Build) void {
             .install_dir = .prefix,
             .install_subdir = "docs",
         }
-    ); 
+    );
     lib_unit_tests.root_module.addImport("metztli", lib_mod);
     const run_lib_unit_tests = b.addRunArtifact(lib_unit_tests);
     const test_step = b.step("test", "Run unit tests");

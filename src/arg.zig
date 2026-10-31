@@ -32,16 +32,18 @@ pub const Argument = struct {
     /// If allocation fails, an error is
     /// returned.
     pub fn clone(
-        self: *const Argument,
+        self: *Argument,
         allocator: Allocator
     ) !Argument {
-        const c_name: [*:0]const u8 = allocator.dupeZ(
+        const c_name: [*:0]const u8 = allocator.dupeSentinel(
             u8,
             std.mem.span(self.name),
+            0
         ) catch return MetztliErr.AllocErr;
-        const c_help: [*:0]const u8 = allocator.dupeZ(
+        const c_help: [*:0]const u8 = allocator.dupeSentinel(
             u8,
             std.mem.span(self.help),
+            0
         ) catch return MetztliErr.AllocErr;
         return Argument {
             .takes_data = self.takes_data,
@@ -55,7 +57,7 @@ pub const Argument = struct {
     /// resources of this
     /// structure.
     pub fn deinit(
-        self: *const Argument,
+        self: *Argument,
         allocator: Allocator
     ) void {
         allocator.free(std.mem.span(self.name));

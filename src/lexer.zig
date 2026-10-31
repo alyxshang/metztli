@@ -12,10 +12,6 @@ const ArrayList = std.ArrayList;
 // from the standard library.
 const Allocator = std.mem.Allocator;
 
-// Importing the function to create
-// a null-terminated formatted string.
-const allocPrintZ = std.fmt.allocPrintZ;
-
 // Importing the function to get the
 // length of a C-String.
 const strLen = @import("utils.zig").strLen;
@@ -31,6 +27,10 @@ const MetztliErr = @import("err.zig").MetztliErr;
 // Importing the function to clone a C-String.
 const cloneSlice = @import("utils.zig").cloneSlice;
 
+// Importing the function to create a formatted
+// null-terminated string.
+const allocPrintSentinel = std.fmt.allocPrintSentinel;
+
 // An enumeration that lists
 // all possible argument types.
 pub const TokenType = enum(u8) {
@@ -45,8 +45,12 @@ pub const TokenType = enum(u8) {
 pub const Token = struct {
     value: [*:0]const u8,
     token_type: TokenType,
+
+    /// A function to free all
+    /// heap-allocated resources
+    /// this structure has.
     pub fn deinit(
-        self: *const Token,
+        self: *Token,
         allocator: Allocator
     ) void {
         allocator.free(std.mem.span(self.value));
@@ -68,13 +72,12 @@ pub fn tokenizeArgs(
         return MetztliErr.EmptyArgs;
     }
     else {
-        var result: ArrayList(Token) = ArrayList(Token)
-            .init(allocator);
+        var result: ArrayList(Token) = .empty;
         errdefer {
-            for (result.items) |item| {
-                item.deinit(allocator);
+            for (result.items) |*item| {
+                @constCast(item).deinit(allocator);
             }
-            result.deinit();
+            result.deinit(allocator);
         }
         for (args.items) |arg| { 
             if (arg[0] == '-'){
@@ -88,7 +91,7 @@ pub fn tokenizeArgs(
                         .value = no_minus,
                         .token_type = .MinusMinusArg
                     };
-                    result.append(token)
+                    result.append(allocator, token)
                         catch return MetztliErr.WriteErr;
                 }
                 else {
@@ -97,21 +100,21 @@ pub fn tokenizeArgs(
                     errdefer allocator.free(std.mem.span(no_minus));
                     var cursor: u64 = 0;
                     const no_minus_len: u64 = strLen(no_minus);
-                    var arg_arr: ArrayList(u8) = ArrayList(u8)
-                        .init(allocator);
-                    errdefer arg_arr.deinit();
+                    var arg_arr: ArrayList(u8) = .empty;
+                    errdefer arg_arr.deinit(allocator);
                     while (cursor < no_minus_len){
-                        const fmtd: [*:0]const u8 = allocPrintZ(
+                        const fmtd: [*:0]const u8 = allocPrintSentinel(
                             allocator,
                             "{c}",
-                            .{no_minus[cursor]}
+                            .{no_minus[cursor]},
+                            0
                         ) catch return MetztliErr.AllocErr;
                         errdefer allocator.free(std.mem.span(fmtd));
                         const token: Token = Token {
                             .value = fmtd,
                             .token_type = .MinusArg
                         };
-                        result.append(token)
+                        result.append(allocator, token)
                             catch return MetztliErr.WriteErr;
                         cursor = cursor + 1;
                     }
@@ -124,7 +127,7 @@ pub fn tokenizeArgs(
                     .value = cloned,
                     .token_type = .Entity
                 };
-                result.append(token)
+                result.append(allocator, token)
                     catch return MetztliErr.WriteErr;
             }
         }

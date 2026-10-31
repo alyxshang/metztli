@@ -41,15 +41,14 @@ pub fn cloneSlice(
     allocator: Allocator
 ) ![*:0]const u8 {
     var cursor: u64 = 0;
-    var chars: ArrayList(u8) = ArrayList(u8)
-        .init(allocator);
-    errdefer chars.deinit();
+    var chars: ArrayList(u8) = .empty;
+    errdefer chars.deinit(allocator);
     while (sub[cursor] != 0){
-        chars.append(sub[cursor])
+        chars.append(allocator, sub[cursor])
             catch return MetztliErr.WriteErr;
         cursor = cursor + 1;
     }
-    const joined: [*:0]const u8 = chars.toOwnedSliceSentinel(0)
+    const joined: [*:0]const u8 = chars.toOwnedSliceSentinel(allocator,0)
         catch return MetztliErr.AllocErr;
     errdefer allocator.free(std.mem.span(joined));
     return joined;
@@ -68,17 +67,16 @@ pub fn removeAt(
 ) ![*:0]const u8 {
     var cursor: u64 = 0;
     const len: u64 = strLen(sub);
-    var result: ArrayList(u8) = ArrayList(u8)
-        .init(allocator);
-    errdefer result.deinit();
+    var result: ArrayList(u8) = .empty;
+    errdefer result.deinit(allocator);
     while (cursor < len) {
         if (cursor != at){
-            result.append(sub[cursor])
+            result.append(allocator, sub[cursor])
                 catch return MetztliErr.WriteErr;
         }
         cursor = cursor + 1;
     }
-    const joined: [*:0]const u8 = result.toOwnedSliceSentinel(0)
+    const joined: [*:0]const u8 = result.toOwnedSliceSentinel(allocator,0)
         catch return MetztliErr.AllocErr;
     errdefer allocator.free(std.mem.span(joined));
     return joined;

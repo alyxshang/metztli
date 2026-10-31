@@ -40,13 +40,12 @@ pub fn buildLengthStrings(
     allocator: Allocator,
     set_args: *ArrayList(Argument)
 ) !ArrayList([]const u8) {
-    var result: ArrayList([]const u8) = ArrayList([]const u8)
-        .init(allocator);
+    var result: ArrayList([]const u8) = .empty;
     errdefer {
         for (result.items) |item| {
             allocator.free(item);
         }
-        result.deinit();
+        result.deinit(allocator);
     }
     for (set_args.items) |item| {
         if (item.takes_data) {
@@ -56,7 +55,7 @@ pub fn buildLengthStrings(
                 .{item.name[0], item.name, item.name}
             ) catch return MetztliErr.AllocErr;
             errdefer allocator.free(fmtd);
-            result.append(fmtd) catch return MetztliErr.WriteErr;
+            result.append(allocator, fmtd) catch return MetztliErr.WriteErr;
         }
         else {
             const fmtd: []const u8 = allocPrint(
@@ -65,7 +64,7 @@ pub fn buildLengthStrings(
                 .{item.name[0], item.name, item.name}
             ) catch return MetztliErr.AllocErr;
             errdefer allocator.free(fmtd);
-            result.append(fmtd) catch return MetztliErr.WriteErr;
+            result.append(allocator, fmtd) catch return MetztliErr.WriteErr;
         }
     }
     return result;
@@ -80,11 +79,13 @@ pub fn getLongestPrefix(
     allocator: Allocator,
     sub: *const ArrayList([]const u8)
 ) !u64 {
-    var result_nums: ArrayList(u64) = ArrayList(u64).init(allocator);
-    errdefer result_nums.deinit();
-    defer result_nums.deinit();
+    var result_nums: ArrayList(u64) = .empty;
+    defer result_nums.deinit(allocator);
     for (sub.items) |item| {
-        result_nums.append(item.len) catch return MetztliErr.WriteErr;
+        result_nums.append(
+            allocator, 
+            item.len
+        ) catch return MetztliErr.WriteErr;
     }
     const result: u64 = std.mem.max(u64, result_nums.items);
     return result;
@@ -98,7 +99,7 @@ pub fn buildHelpMessage(
     allocator: Allocator,
     set_args: *ArrayList(Argument)
 ) ![*:0]const u8 {
-    const strings: ArrayList([]const u8) = try buildLengthStrings(
+    var strings: ArrayList([]const u8) = try buildLengthStrings(
         allocator,
         set_args
     );
@@ -106,28 +107,15 @@ pub fn buildHelpMessage(
         for (strings.items) |item| {
             allocator.free(item);
         }
-        strings.deinit();
-    }
-    errdefer {
-        for (strings.items) |item| {
-            allocator.free(item);
-        }
-        strings.deinit();
-    }
+        strings.deinit(allocator);
+    } 
     const longest: u64 = try getLongestPrefix(allocator, &strings);
-    var slices: ArrayList([]const u8) = ArrayList([]const u8)
-        .init(allocator);
-    errdefer {
-        for (slices.items) |item| {
-            allocator.free(item);
-        }
-        slices.deinit();
-    }
+    var slices: ArrayList([]const u8) = .empty; 
     defer {
         for (slices.items) |item| {
             allocator.free(item);
         }
-        slices.deinit();
+        slices.deinit(allocator);
     }
     for (set_args.items) |item| {
         if (item.takes_data) {
@@ -145,21 +133,23 @@ pub fn buildHelpMessage(
                     .{fmtd_prefix, item.help}
                 ) catch return MetztliErr.AllocErr;
                 errdefer allocator.free(fmtd);
-                slices.append(fmtd) catch return MetztliErr.WriteErr;
+                slices.append(allocator,fmtd) catch return MetztliErr.WriteErr;
             }
             else {
-                var msg_chars: ArrayList(u8) = ArrayList(u8).init(allocator);
-                defer msg_chars.deinit();
-                errdefer msg_chars.deinit();
-                msg_chars.appendNTimes(' ', ((longest - fmtd_prefix.len) + 1))
-                    catch return MetztliErr.WriteErr;
+                var msg_chars: ArrayList(u8) = .empty;
+                defer msg_chars.deinit(allocator);
+                msg_chars.appendNTimes(
+                    allocator,
+                    ' ', 
+                    ((longest - fmtd_prefix.len) + 1)
+                ) catch return MetztliErr.WriteErr;
                 const fmtd: []const u8 = allocPrint(
                     allocator,
                     "{s}{s} {s}\n",
                     .{fmtd_prefix, msg_chars.items, item.help}
                 ) catch return MetztliErr.AllocErr;
                 errdefer allocator.free(fmtd);
-                slices.append(fmtd) catch return MetztliErr.WriteErr;
+                slices.append(allocator, fmtd) catch return MetztliErr.WriteErr;
             }
         }
         else {
@@ -177,21 +167,23 @@ pub fn buildHelpMessage(
                     .{fmtd_prefix, item.help}
                 ) catch return MetztliErr.AllocErr;
                 errdefer allocator.free(fmtd);
-                slices.append(fmtd) catch return MetztliErr.WriteErr;
+                slices.append(allocator, fmtd) catch return MetztliErr.WriteErr;
             }
             else {
-                var msg_chars: ArrayList(u8) = ArrayList(u8).init(allocator); 
-                defer msg_chars.deinit();
-                errdefer msg_chars.deinit();
-                msg_chars.appendNTimes(' ', ((longest - fmtd_prefix.len) + 1))
-                    catch return MetztliErr.WriteErr;
+                var msg_chars: ArrayList(u8) = .empty; 
+                defer msg_chars.deinit(allocator);
+                msg_chars.appendNTimes(
+                    allocator,
+                    ' ', 
+                    ((longest - fmtd_prefix.len) + 1)
+                ) catch return MetztliErr.WriteErr;
                 const fmtd: []const u8 = allocPrint(
                     allocator,
                     "{s}{s} {s}\n",
                     .{fmtd_prefix, msg_chars.items, item.help}
                 ) catch return MetztliErr.AllocErr;
                 errdefer allocator.free(fmtd);
-                slices.append(fmtd) catch return MetztliErr.WriteErr;
+                slices.append(allocator, fmtd) catch return MetztliErr.WriteErr;
             }
         }
     }

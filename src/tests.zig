@@ -37,7 +37,7 @@ const parser = @import("parser.zig");
 // Testing the module containing utility functions.
 test "Testing the module containing utility functions." {
     const test_str: [*:0]const u8 =
-        try std.testing.allocator.dupeZ(u8, "hello");
+        try std.testing.allocator.dupeSentinel(u8, "hello", 0);
     errdefer std.testing.allocator.free(std.mem.span(test_str));
     defer std.testing.allocator.free(std.mem.span(test_str));
     const len: u64 = utils.strLen(test_str);
@@ -59,27 +59,26 @@ test "Testing the module containing utility functions." {
 // Testing the module containing the function to tokenize
 // CLI arguments.
 test "Testing the module containing to tokenize CLI arguments" {
-    var test_arr: std.ArrayList([*:0]const u8) = std.ArrayList([*:0]const u8)
-        .init(std.testing.allocator);
-    defer test_arr.deinit();
-    const one: [*:0]const u8 = try std.testing.allocator.dupeZ(u8, "build");
+    var test_arr: std.ArrayList([*:0]const u8) = .empty;
+    defer test_arr.deinit(std.testing.allocator);
+    const one: [*:0]const u8 = try std.testing.allocator.dupeSentinel(u8, "build",0);
     defer std.testing.allocator.free(std.mem.span(one));
-    const two: [*:0]const u8 = try std.testing.allocator.dupeZ(u8, "-asdf");
+    const two: [*:0]const u8 = try std.testing.allocator.dupeSentinel(u8, "-asdf",0);
     defer std.testing.allocator.free(std.mem.span(two));
-    const three: [*:0]const u8 = try std.testing.allocator.dupeZ(u8, "--local");
+    const three: [*:0]const u8 = try std.testing.allocator.dupeSentinel(u8, "--local",0);
     defer std.testing.allocator.free(std.mem.span(three));
-    try test_arr.append(one);
-    try test_arr.append(two);
-    try test_arr.append(three);
-    const tokenized: std.ArrayList(lexer.Token) = try lexer.tokenizeArgs(
+    try test_arr.append(std.testing.allocator,one);
+    try test_arr.append(std.testing.allocator,two);
+    try test_arr.append(std.testing.allocator,three);
+    var tokenized: std.ArrayList(lexer.Token) = try lexer.tokenizeArgs(
         std.testing.allocator,
         &test_arr
     );
     defer {
-        for (tokenized.items) |item| {
-            item.deinit(std.testing.allocator);
+        for (tokenized.items) |*item| {
+            @constCast(item).deinit(std.testing.allocator);
         }
-        tokenized.deinit();
+        tokenized.deinit(std.testing.allocator);
     }
     try std.testing.expect(tokenized.items.len == 6);
 }
@@ -87,27 +86,26 @@ test "Testing the module containing to tokenize CLI arguments" {
 // Testing the module containing entities
 // to work with set arguments.
 test "Testing the module containing entities to work with set arguments." {
-    var set_args: std.ArrayList(arg.Argument) = std.ArrayList(arg.Argument)
-        .init(std.testing.allocator);
-    defer set_args.deinit();
-    const one_name: [*:0]const u8 = try std.testing.allocator.dupeZ(u8, "build");
-    const one_help: [*:0]const u8 = try std.testing.allocator.dupeZ(u8, "builds something");
-    const two_name: [*:0]const u8 = try std.testing.allocator.dupeZ(u8, "verbose");
-    const two_help: [*:0]const u8 = try std.testing.allocator.dupeZ(u8, "shows build output");
-    const one: arg.Argument = arg.Argument {
+    var set_args: std.ArrayList(arg.Argument) = .empty;
+    defer set_args.deinit(std.testing.allocator);
+    const one_name: [*:0]const u8 = try std.testing.allocator.dupeSentinel(u8, "build",0);
+    const one_help: [*:0]const u8 = try std.testing.allocator.dupeSentinel(u8, "builds something",0);
+    const two_name: [*:0]const u8 = try std.testing.allocator.dupeSentinel(u8, "verbose",0);
+    const two_help: [*:0]const u8 = try std.testing.allocator.dupeSentinel(u8, "shows build output",0);
+    var one: arg.Argument = arg.Argument {
         .takes_data = true,
         .name = one_name,
         .help = one_help
     };
     defer one.deinit(std.testing.allocator);
-    const two: arg.Argument = arg.Argument {
+    var two: arg.Argument = arg.Argument {
         .takes_data = false,
         .name = two_name,
         .help = two_help
     };
     defer two.deinit(std.testing.allocator);
-    try set_args.append(one);
-    try set_args.append(two);
+    try set_args.append(std.testing.allocator,one);
+    try set_args.append(std.testing.allocator,two);
     const is_t: bool = arg.isSet("build", &set_args);
     const ud_t: bool = arg.usesData("build", &set_args);
     const fl_t: [*:0]const u8 = try arg.getArgByLetter(
@@ -123,146 +121,155 @@ test "Testing the module containing entities to work with set arguments." {
 
 // Testing the module to deserialize tokens.
 test "Testing the module to deserialize tokens." {
-    var test_arr: std.ArrayList([*:0]const u8) = std.ArrayList([*:0]const u8)
-        .init(std.testing.allocator);
-    defer test_arr.deinit();
-    const i_one: [*:0]const u8 = try std.testing.allocator.dupeZ(
+    var test_arr: std.ArrayList([*:0]const u8) = .empty;
+    defer test_arr.deinit(std.testing.allocator);
+    const i_one: [*:0]const u8 = try std.testing.allocator.dupeSentinel(
         u8, 
-        "build"
+        "build",
+        0
     );
     defer std.testing.allocator.free(std.mem.span(i_one));
-    const i_two: [*:0]const u8 = try std.testing.allocator.dupeZ(
+    const i_two: [*:0]const u8 = try std.testing.allocator.dupeSentinel(
         u8, 
-        "--verbose"
+        "--verbose",
+        0
     );
     defer std.testing.allocator.free(std.mem.span(i_two));
-    try test_arr.append(i_one);
-    try test_arr.append(i_two);
-    const tokenized: std.ArrayList(lexer.Token) = try lexer.tokenizeArgs(
+    try test_arr.append(std.testing.allocator,i_one);
+    try test_arr.append(std.testing.allocator,i_two);
+    var tokenized: std.ArrayList(lexer.Token) = try lexer.tokenizeArgs(
         std.testing.allocator,
         &test_arr
     );
     defer {
-        for (tokenized.items) |item| {
-            item.deinit(std.testing.allocator);
+        for (tokenized.items) |*item| {
+            @constCast(item).deinit(std.testing.allocator);
         }
-        tokenized.deinit();
+        tokenized.deinit(std.testing.allocator);
     }
-    var set_args: std.ArrayList(arg.Argument) = std.ArrayList(arg.Argument)
-        .init(std.testing.allocator);
-    defer set_args.deinit();
-    const one_name: [*:0]const u8 = try std.testing.allocator.dupeZ(
+    var set_args: std.ArrayList(arg.Argument) = .empty;
+    defer set_args.deinit(std.testing.allocator);
+    const one_name: [*:0]const u8 = try std.testing.allocator.dupeSentinel(
         u8, 
-        "build"
+        "build",
+        0
     );
-    const one_help: [*:0]const u8 = try std.testing.allocator.dupeZ(
+    const one_help: [*:0]const u8 = try std.testing.allocator.dupeSentinel(
         u8, 
-        "builds something"
+        "builds something",
+        0
     );
-    const two_name: [*:0]const u8 = try std.testing.allocator.dupeZ(
+    const two_name: [*:0]const u8 = try std.testing.allocator.dupeSentinel(
         u8, 
-        "verbose"
+        "verbose",
+        0
     );
-    const two_help: [*:0]const u8 = try std.testing.allocator.dupeZ(
+    const two_help: [*:0]const u8 = try std.testing.allocator.dupeSentinel(
         u8, 
-        "shows build output"
+        "shows build output",
+        0
     );
-    const one: arg.Argument = arg.Argument {
+    var one: arg.Argument = arg.Argument {
         .takes_data = true,
         .name = one_name,
         .help = one_help
     };
     defer one.deinit(std.testing.allocator);
-    const two: arg.Argument = arg.Argument {
+    var two: arg.Argument = arg.Argument {
         .takes_data = false,
         .name = two_name,
         .help = two_help
     };
     defer two.deinit(std.testing.allocator);
-    try set_args.append(one);
-    try set_args.append(two);
-    const deserialized: std.ArrayList(des.DeserializedArgument) = try des
+    try set_args.append(std.testing.allocator,one);
+    try set_args.append(std.testing.allocator,two);
+    var deserialized: std.ArrayList(des.DeserializedArgument) = try des
         .deserializeTokens(
             std.testing.allocator,
             &tokenized,
             &set_args
         );
     defer {
-        for (deserialized.items) |item| {
-            item.deinit(std.testing.allocator);
+        for (deserialized.items) |*item| {
+            @constCast(item).deinit(std.testing.allocator);
         }
-        deserialized.deinit();
+        deserialized.deinit(std.testing.allocator);
     }
     try std.testing.expect(deserialized.items.len == 2);    
 }
 
 // Testing the module to parse deserialized tokens.
 test "Testing the module to parse deserialized tokens." {
-    var test_arr: std.ArrayList([*:0]const u8) = std.ArrayList([*:0]const u8)
-        .init(std.testing.allocator);
-    defer test_arr.deinit();
-    const i_one: [*:0]const u8 = try std.testing.allocator.dupeZ(
+    var test_arr: std.ArrayList([*:0]const u8) = .empty;
+    defer test_arr.deinit(std.testing.allocator);
+    const i_one: [*:0]const u8 = try std.testing.allocator.dupeSentinel(
         u8, 
-        "build"
+        "build",
+        0
     );
     defer std.testing.allocator.free(std.mem.span(i_one));
-    const i_two: [*:0]const u8 = try std.testing.allocator.dupeZ(
+    const i_two: [*:0]const u8 = try std.testing.allocator.dupeSentinel(
         u8, 
-        "./local"
+        "./local",
+        0
     );
     defer std.testing.allocator.free(std.mem.span(i_two));
-    const i_three: [*:0]const u8 = try std.testing.allocator.dupeZ(
+    const i_three: [*:0]const u8 = try std.testing.allocator.dupeSentinel(
         u8, 
-        "--verbose"
+        "--verbose",
+        0
     );
     defer std.testing.allocator.free(std.mem.span(i_three));
-    try test_arr.append(i_one);
-    try test_arr.append(i_two);
-    try test_arr.append(i_three);
-    const tokenized: std.ArrayList(lexer.Token) = try lexer.tokenizeArgs(
+    try test_arr.append(std.testing.allocator,i_one);
+    try test_arr.append(std.testing.allocator,i_two);
+    try test_arr.append(std.testing.allocator,i_three);
+    var tokenized: std.ArrayList(lexer.Token) = try lexer.tokenizeArgs(
         std.testing.allocator,
         &test_arr
     );
     defer {
-        for (tokenized.items) |item| {
-            item.deinit(std.testing.allocator);
+        for (tokenized.items) |*item| {
+            @constCast(item).deinit(std.testing.allocator);
         }
-        tokenized.deinit();
+        tokenized.deinit(std.testing.allocator);
     }
-    var set_args: std.ArrayList(arg.Argument) = std.ArrayList(arg.Argument)
-        .init(std.testing.allocator);
-    defer set_args.deinit();
-    const one_name: [*:0]const u8 = try std.testing.allocator.dupeZ(
+    var set_args: std.ArrayList(arg.Argument) = .empty;
+    defer set_args.deinit(std.testing.allocator);
+    const one_name: [*:0]const u8 = try std.testing.allocator.dupeSentinel(
         u8, 
-        "build"
+        "build",
+        0
     );
-    const one_help: [*:0]const u8 = try std.testing.allocator.dupeZ(
+    const one_help: [*:0]const u8 = try std.testing.allocator.dupeSentinel(
         u8, 
-        "builds something"
+        "builds something",
+        0
     );
-    const two_name: [*:0]const u8 = try std.testing.allocator.dupeZ(
+    const two_name: [*:0]const u8 = try std.testing.allocator.dupeSentinel(
         u8, 
-        "verbose"
+        "verbose",
+        0
     );
-    const two_help: [*:0]const u8 = try std.testing.allocator.dupeZ(
+    const two_help: [*:0]const u8 = try std.testing.allocator.dupeSentinel(
         u8, 
-        "shows build output"
+        "shows build output",
+        0
     );
-    const one: arg.Argument = arg.Argument {
+    var one: arg.Argument = arg.Argument {
         .takes_data = true,
         .name = one_name,
         .help = one_help
     };
     defer one.deinit(std.testing.allocator);
-    const two: arg.Argument = arg.Argument {
+    var two: arg.Argument = arg.Argument {
         .takes_data = false,
         .name = two_name,
         .help = two_help
     };
     defer two.deinit(std.testing.allocator);
-    try set_args.append(one);
-    try set_args.append(two);
-    const deserialized: std.ArrayList(des.DeserializedArgument) = try des
+    try set_args.append(std.testing.allocator,one);
+    try set_args.append(std.testing.allocator,two);
+    var deserialized: std.ArrayList(des.DeserializedArgument) = try des
         .deserializeTokens(
             std.testing.allocator,
             &tokenized,
@@ -270,62 +277,65 @@ test "Testing the module to parse deserialized tokens." {
         );
 
     defer {
-        for (deserialized.items) |item| {
-            item.deinit(std.testing.allocator);
+        for (deserialized.items) |*item| {
+            @constCast(item).deinit(std.testing.allocator);
         }
-        deserialized.deinit();
+        deserialized.deinit(std.testing.allocator);
     }  
-    const parsed: std.ArrayList(parser.ParsedArgument) = try parser
+    var parsed: std.ArrayList(parser.ParsedArgument) = try parser
         .parseDeserialized(
             std.testing.allocator,
             &set_args,
             &deserialized
         );
     defer {
-        for (parsed.items) |item| {
-            item.deinit(std.testing.allocator);
+        for (parsed.items) |*item| {
+            @constCast(item).deinit(std.testing.allocator);
         }
-        parsed.deinit();
+        parsed.deinit(std.testing.allocator);
     }
     try std.testing.expect(parsed.items.len == 2);
 }
 
 // Testing the module that has functions to build the help message.
 test "Testing the module that has functions to build the help message." {
-    var set_args: std.ArrayList(arg.Argument) = std.ArrayList(arg.Argument)
-        .init(std.testing.allocator);
-    defer set_args.deinit();
-    const one_name: [*:0]const u8 = try std.testing.allocator.dupeZ(
+    var set_args: std.ArrayList(arg.Argument) = .empty;
+    defer set_args.deinit(std.testing.allocator);
+    const one_name: [*:0]const u8 = try std.testing.allocator.dupeSentinel(
         u8, 
-        "build"
+        "build",
+        0
     );
-    const one_help: [*:0]const u8 = try std.testing.allocator.dupeZ(
+    const one_help: [*:0]const u8 = try std.testing.allocator.dupeSentinel(
         u8, 
-        "builds something"
+        "builds something",
+        0
     );
-    const two_name: [*:0]const u8 = try std.testing.allocator.dupeZ(
+    const two_name: [*:0]const u8 = try std.testing.allocator.dupeSentinel(
         u8, 
-        "verbose"
+        "verbose",
+        0
     );
-    const two_help: [*:0]const u8 = try std.testing.allocator.dupeZ(
+    const two_help: [*:0]const u8 = try std.testing.allocator.dupeSentinel(
         u8, 
-        "shows build output"
+        "shows build output",
+        0
     );
-    const one: arg.Argument = arg.Argument {
+    var one: arg.Argument = arg.Argument {
         .takes_data = true,
         .name = one_name,
         .help = one_help
     };
     defer one.deinit(std.testing.allocator);
-    const two: arg.Argument = arg.Argument {
+    var two: arg.Argument = arg.Argument {
         .takes_data = false,
         .name = two_name,
         .help = two_help
     };
     defer two.deinit(std.testing.allocator);
-    try set_args.append(one);
-    try set_args.append(two);
-    const prefix_strings: std.ArrayList([]const u8) = try help.buildLengthStrings(
+    try set_args.append(std.testing.allocator,one);
+    try set_args.append(std.testing.allocator,two);
+    var prefix_strings: std.ArrayList([]const u8) = try help.buildLengthStrings(
         std.testing.allocator,
         &set_args
     );
@@ -333,7 +343,7 @@ test "Testing the module that has functions to build the help message." {
         for (prefix_strings.items) |item| {
             std.testing.allocator.free(item);
         }
-        prefix_strings.deinit();
+        prefix_strings.deinit(std.testing.allocator);
     }
     const length: u64 = try help.getLongestPrefix(
         std.testing.allocator,
@@ -351,17 +361,20 @@ test "Testing the module that has functions to build the help message." {
 
 // Testing the module containing the main "App" structure.
 test "Testing the module containing the main \"App\" structure." {
-    const app_name: [*:0]const u8 = try std.testing.allocator.dupeZ(
+    const app_name: [*:0]const u8 = try std.testing.allocator.dupeSentinel(
         u8, 
-        "Test App"
+        "Test App",
+        0
     );
-    const app_author: [*:0]const u8 = try std.testing.allocator.dupeZ(
+    const app_author: [*:0]const u8 = try std.testing.allocator.dupeSentinel(
         u8, 
-        "Alyx Shang"
+        "Alyx Shang",
+        0
     );
-    const app_version: [*:0]const u8 = try std.testing.allocator.dupeZ(
+    const app_version: [*:0]const u8 = try std.testing.allocator.dupeSentinel(
         u8, 
-        "0.1.0"
+        "0.1.0",
+        0
     );
     var ma: app.App = app.App.init(
         std.testing.allocator,
@@ -370,42 +383,47 @@ test "Testing the module containing the main \"App\" structure." {
         app_version
     );
     defer ma.deinit();
-    const one_name: [*:0]const u8 = try std.testing.allocator.dupeZ(
+    const one_name: [*:0]const u8 = try std.testing.allocator.dupeSentinel(
         u8, 
-        "greet"
+        "greet",
+        0
     );
-    const one_help: [*:0]const u8 = try std.testing.allocator.dupeZ(
+    const one_help: [*:0]const u8 = try std.testing.allocator.dupeSentinel(
         u8, 
-        "greets the user"
+        "greets the user",
+        0
     );
-    const two_name: [*:0]const u8 = try std.testing.allocator.dupeZ(
+    const two_name: [*:0]const u8 = try std.testing.allocator.dupeSentinel(
         u8, 
-        "cgreet"
+        "cgreet",
+        0
     );
-    const two_help: [*:0]const u8 = try std.testing.allocator.dupeZ(
+    const two_help: [*:0]const u8 = try std.testing.allocator.dupeSentinel(
         u8, 
-        "greets the user with their name"
+        "greets the user with their name",
+        0
     );
     try ma.setArg(false, one_name, one_help);
     try ma.setArg(true, two_name, two_help);
-    var arg_list: std.ArrayList([*:0]const u8) = std.ArrayList([*:0]const u8)
-        .init(std.testing.allocator);
+    var arg_list: std.ArrayList([*:0]const u8) = .empty;
     defer {
         for (arg_list.items) |item| {
             std.testing.allocator.free(std.mem.span(item));
         }
-        arg_list.deinit();
+        arg_list.deinit(std.testing.allocator);
     }
-    const first_arg: [*:0]const u8 = try std.testing.allocator.dupeZ(
+    const first_arg: [*:0]const u8 = try std.testing.allocator.dupeSentinel(
         u8, 
-        "--cgreet"
+        "--cgreet",
+        0
     );
-    const second_arg: [*:0]const u8 = try std.testing.allocator.dupeZ(
+    const second_arg: [*:0]const u8 = try std.testing.allocator.dupeSentinel(
         u8, 
-        "Alyx"
+        "Alyx",
+        0
     );
-    try arg_list.append(first_arg);
-    try arg_list.append(second_arg);
+    try arg_list.append(std.testing.allocator,first_arg);
+    try arg_list.append(std.testing.allocator,second_arg);
     try ma.parseArgs(&arg_list);
     const was_used: bool = ma.argUsed("cgreet");
     const help_msg: [*:0]const u8 = try ma.helpInfo();

@@ -7,7 +7,7 @@
 ## ABOUT
 
 This repository contains the Zig source code for a library to create CLI
-applications in Zig. This library is a port of my [Rust library](https://github.com/alyxshang/yue), that does the same. ***Metztli*** is the Nahuatl word for "moon". Nahuatl is the ancient language spoken by the Aztec empire. The code in this library has been linted and has 100% test coverage.
+applications in Zig. This library is a port of my [Rust library](https://github.com/alyxshang/yue) that does the same. ***Metztli*** is the Nahuatl word for "moon". Nahuatl is the ancient language spoken by the Aztec empire.
 
 ## FEATURES
 
@@ -21,11 +21,11 @@ applications in Zig. This library is a port of my [Rust library](https://github.
 
 ## INSTALLATION
 
-This Zig library uses Zig version `0.14.0`.
+This Zig library uses Zig version `0.17.0`.
 To add this library to your project, use the following command:
 
 ```Bash
-zig fetch --save git+https://github.com/alyxshang/metztli.git#v.0.1.0
+zig fetch --save git+https://github.com/alyxshang/metztli.git#v.0.2.0
 ```
 
 The following module must also be declared in your project's `build.zig`:

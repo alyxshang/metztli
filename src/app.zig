@@ -12,10 +12,6 @@ const ArrayList = std.ArrayList;
 // from the standard library.
 const Allocator = std.mem.Allocator;
 
-// Importing the function to create
-// a null-terminated formatted string.
-const allocPrintZ = std.fmt.allocPrintZ;
-
 // Importing the structure encapsulating
 // data about a token captured from a stream
 // of arguments.
@@ -36,6 +32,10 @@ const MetztliErr = @import("err.zig").MetztliErr;
 
 // Importing the function to clone a C-String.
 const cloneSlice = @import("utils.zig").cloneSlice;
+
+// Importing the function to create
+// a null-terminated formatted string.
+const allocPrintSentinel = std.fmt.allocPrintSentinel;
 
 // Importing the function to tokenize
 // arguments.
@@ -79,11 +79,8 @@ pub const App = struct {
         author: [*:0]const u8,
         version: [*:0]const u8
     ) App {
-        const args: ArrayList(Argument) = ArrayList(Argument)
-            .init(allocator);
-        const parsed_args: ArrayList(ParsedArgument) = ArrayList(ParsedArgument)
-            .init(allocator);
-
+        const args: ArrayList(Argument) = .empty;
+         const parsed_args: ArrayList(ParsedArgument) = .empty;
         return App {
             .name = name,
             .author = author,
@@ -109,7 +106,7 @@ pub const App = struct {
             .help = help,
             .takes_data = takes_data
         };
-        self.arguments.append(added)
+        self.arguments.append(self.allocator,added)
             catch return MetztliErr.WriteErr;
     }
 
@@ -126,10 +123,10 @@ pub const App = struct {
             recvd
         ); 
         defer {
-            for (tokenized.items) |item| {
-                item.deinit(self.allocator);
+            for (tokenized.items) |*item| {
+                @constCast(item).deinit(self.allocator);
             }
-            tokenized.deinit();
+            tokenized.deinit(self.allocator);
         } 
         var deserialized: ArrayList(DeserializedArgument) = try deserializeTokens(
             self.allocator,
@@ -137,10 +134,10 @@ pub const App = struct {
             &self.arguments
         );
         defer {
-            for (deserialized.items) |item| {
-                item.deinit(self.allocator);
+            for (deserialized.items) |*item| {
+                @constCast(item).deinit(self.allocator);
             }
-            deserialized.deinit();
+            deserialized.deinit(self.allocator);
         }
         const parsed: ArrayList(ParsedArgument) = try parseDeserialized(
             self.allocator,
@@ -211,10 +208,11 @@ pub const App = struct {
     pub fn versionInfo(
         self: *App
     ) ![*:0]const u8 {
-        const msg: [*:0]const u8 = allocPrintZ(
+        const msg: [*:0]const u8 = allocPrintSentinel(
             self.allocator,
             "{s} v.{s}\nby {s}\n",
-            .{self.name, self.version, self.author}
+            .{self.name, self.version, self.author},
+            0
         ) catch return MetztliErr.AllocErr;
         errdefer self.allocator.free(std.mem.span(msg));
         return msg;
@@ -245,13 +243,13 @@ pub const App = struct {
         self.allocator.free(std.mem.span(self.name)); 
         self.allocator.free(std.mem.span(self.author));
         self.allocator.free(std.mem.span(self.version));
-        for (self.arguments.items) |arg| {
-            arg.deinit(self.allocator);
+        for (self.arguments.items) |*arg| {
+            @constCast(arg).deinit(self.allocator);
         }
-        self.arguments.deinit();
-        for (self.parsed_arguments.items) |arg| {
-            arg.deinit(self.allocator);
+        self.arguments.deinit(self.allocator);
+        for (self.parsed_arguments.items) |*arg| {
+            @constCast(arg).deinit(self.allocator);
         }
-        self.parsed_arguments.deinit();
+        self.parsed_arguments.deinit(self.allocator);
     }
 };
