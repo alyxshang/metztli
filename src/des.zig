@@ -56,8 +56,8 @@ pub const DeserializedArgument = struct {
 };
 
 /// A function to deserialize a stream
-/// of tokens taken from a stream CLI
-/// arguments.  Each token is checked
+/// of tokens taken from a stream of CLI
+/// arguments. Each token is checked
 /// to see if it is a set argument or not.
 /// This data is recorded in an instance of
 /// the `DeserializedArgument` structure and

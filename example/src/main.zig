@@ -17,10 +17,12 @@ pub fn main(init: std.process.Init) !void {
     // Defining the allocator.
     const allocator = gpa.allocator();
 
-    // Creating a buffer for our arguments.
-    var args_iter = try init.minimal.args.iterateAllocator(init.gpa);
+    // Creating a buffer for our arguments. 
     var args_list: std.ArrayList([*:0]const u8) = .empty;
     defer args_list.deinit(allocator);
+
+    // Getting the arguments from `std.process.Init`.
+    var args_iter = try init.minimal.args.iterateAllocator(init.gpa);
 
     // The iterator owns the arguments which is why
     // we do not need to free the strings in the buffer.

@@ -116,7 +116,7 @@ pub fn usesData(
 /// from the list of arguments
 /// given the argument's first
 /// letter. If allocation fails
-/// or the argument cannot be found
+/// or the argument cannot be found,
 /// an error is returned.
 pub fn getArgByLetter(
     sub: u8,

@@ -169,10 +169,10 @@ pub const App = struct {
         return result;
     }
 
-    /// A function to check whether
-    /// an argument has been used.
-    /// A boolean is returned to reflect
-    /// this.
+    /// A function to retrieve the data
+    /// supplied to an argument. The data
+    /// is returned as a C-style string.
+    /// Any errors are returned.
     pub fn getArgData(
         self: *App,
         arg: [*:0]const u8,
